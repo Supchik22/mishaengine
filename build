@@ -1,0 +1,17 @@
+#!/bin/bash
+
+
+# Назва вашого вихідного файлу
+SOURCE_FILES="main.cpp canvasitem.cpp entities/enemy.cpp entities/bullet.cpp entities/player.cpp canvasitems/sprite.cpp audioserver.cpp"
+
+# Назва виходу (зазначте ім'я для вашого виконуваного файлу)
+OUTPUT_FILE="Game"
+
+g++ -o $OUTPUT_FILE $SOURCE_FILES -lGL -lGLU -lglut -lSOIL -lsndfile -lopenal
+
+# x86_64-w64-mingw32-gcc -o $OUTPUT_FILE $SOURCE_FILES -lGL -lGLU -lglut -lSOIL
+
+
+
+# Запуск програми
+./$OUTPUT_FILE
