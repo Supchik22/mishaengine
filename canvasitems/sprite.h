@@ -14,7 +14,9 @@ public:
     ~Sprite();
     CanvasItem* owner;
 
-    void draw() override;
+    virtual void update() override;
+    virtual void draw() override;
+
     bool loadTexture(const std::string& imagePath);
 
 

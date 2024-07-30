@@ -11,7 +11,8 @@ public:
     int lives;
     float moveSpeed;
     Player(float s, float r, float g, float b, int l, float speed);
-    void draw() override;
+    virtual void update() override;
+    virtual void draw() override;
     void move(float dx, float dy);
 };
 

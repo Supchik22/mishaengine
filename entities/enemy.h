@@ -15,8 +15,8 @@ public:
     float moveSpeed;
     Enemy(float s, float r, float g, float b, Player* t, float speed);
     ~Enemy();
-    void draw() override;
-    void update();
+    virtual void update() override;
+    virtual void draw() override;
     void setPosition(float x, float y);
 };
 

@@ -10,20 +10,9 @@
 #include <SOIL/SOIL.h>
 #include "utility.h"
 #include "audioserver.h"
+#include "game.h"
+#include "particles.h"
 
-
-// Global variables
-float mouseX = 0., mouseY = 0.;
-std::vector<CanvasItem*> canvasItems;
-Player* player;
-std::vector<Enemy*> enemies;
-std::vector<Bullet*> bullets;
-
-float cameraX = 0.0f;
-float cameraY = 0.0f;
-float cameraZoom = 0.0f;
-
-bool keys[256];
 
 // Function declarations
 void displayLives();
@@ -38,115 +27,84 @@ void initShapes();
 void mouse(int x, int y);
 void initEnemies();
 void spawnEnemy();
+
 void displayLives() {
+    Game& game = Game::getInstance();
+    Player* player = game.getPlayer();
     std::string livesText = "Lives: " + std::to_string(player->lives);
     glColor3f(1.0f, 1.0f, 1.0f);
-    glRasterPos2f(-0.9f+cameraX, 0.9f+cameraY);
+    glRasterPos2f(-0.9f + game.getCameraX(), 0.9f + game.getCameraY());
     for (char c : livesText) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, c);
     }
 }
 
-void detectCollisions() {
-    for (auto it = bullets.begin(); it != bullets.end(); ) {
-        Bullet* bullet = *it;
-        bool bulletRemoved = false;
 
-        for (auto jt = enemies.begin(); jt != enemies.end(); ) {
-            Enemy* enemy = *jt;
-            float dx = bullet->offsetX - enemy->offsetX;
-            float dy = bullet->offsetY - enemy->offsetY;
-            float distance = std::sqrt(dx * dx + dy * dy);
-
-            if (distance < 0.1f) {
-
-                delete enemy;
-
-                jt = enemies.erase(jt);
-                bulletRemoved = true;
-
-                spawnEnemy();
-                break;
-            } else {
-                ++jt;
-            }
-        }
-
-        if (bulletRemoved) {
-            delete bullet;
-            it = bullets.erase(it);
-        } else {
-            ++it;
-        }
-    }
-}
 
 void update() {
-    if (keys['w']) {
+    Game& game = Game::getInstance();
+    Player* player = game.getPlayer();
+    if (game.getKey('w')) {
         player->move(0.0f, 1.0f);
     }
-    if (keys['s']) {
+    if (game.getKey('s')) {
         player->move(0.0f, -1.0f);
     }
-    if (keys['a']) {
+    if (game.getKey('a')) {
         player->move(-1.0f, 0.0f);
     }
-    if (keys['d']) {
+    if (game.getKey('d')) {
         player->move(1.0f, 0.0f);
     }
 
     // Zoom
-    if (keys['z']) {
-        cameraZoom -= 0.01;
+    if (game.getKey('z')) {
+        game.setCameraZoom(game.getCameraZoom() - 0.01f);
     }
-    if (keys['x']) {
-        cameraZoom += 0.01;
-    }
-
-    for (Enemy* enemy : enemies) {
-        enemy->update();
-    }
-    for (Bullet* bullet : bullets) {
-        bullet->update();
+    if (game.getKey('x')) {
+        game.setCameraZoom(game.getCameraZoom() + 0.01f);
     }
 
-    detectCollisions();
+    for (CanvasItem* item : game.getCanvasItems()) {
+        item->update();
+    }
+
+    ParticleSystem& particleSystem = ParticleSystem::getInstance();
+    particleSystem.update(0.016f);
 }
 
 void display() {
+    Game& game = Game::getInstance();
+    Player* player = game.getPlayer();
+
     glClear(GL_COLOR_BUFFER_BIT);
     glLoadIdentity();
-    cameraX = lerp(cameraX, player->offsetX, 0.1f);  // Smooth camera movement using lerp
-    cameraY = lerp(cameraY, player->offsetY, 0.1f);  // Smooth camera movement using lerp
-    glTranslatef(0.0 - cameraX, 0.0 - cameraY, cameraZoom);
+    game.setCameraX(lerp(game.getCameraX(), player->offsetX, 0.1f));  // Smooth camera movement using lerp
+    game.setCameraY(lerp(game.getCameraY(), player->offsetY, 0.1f));  // Smooth camera movement using lerp
+    glTranslatef(0.0 - game.getCameraX(), 0.0 - game.getCameraY(), game.getCameraZoom());
 
-    for (CanvasItem* item : canvasItems) {
+    for (CanvasItem* item : game.getCanvasItems()) {
         item->draw();
     }
 
-    player->draw();
-    for (Enemy* enemy : enemies) {
-        enemy->draw();
-    }
-    for (Bullet* bullet : bullets) {
-        bullet->draw();
-    }
-
     displayLives();
+    ParticleSystem& particleSystem = ParticleSystem::getInstance();
+
+
+    particleSystem.draw();
+
 
     glutSwapBuffers();
 }
 
 void spawnEnemy() {
+    Game& game = Game::getInstance();
 
+    Enemy* temp_enemy = new Enemy(0.2f, 1.0f, 1.0f, 0.0f, game.getPlayer(), 0.001f);
+    temp_enemy->setPosition(randRangeF(-1.0f, 2.0f), randRangeF(-1.0f, 2.0f));
 
-
-    Enemy* temp_enemy;
-    temp_enemy = new Enemy(0.2f, 1.0f, 1.0f, 0.0f, player, 0.001f);
-    temp_enemy->setPosition(randRangeF(-1.0f,2.0),randRangeF(-1.0f,2.0));
-
-    enemies.push_back(temp_enemy);
-
+    game.addCanvasItem(temp_enemy);
+    game.addEnemy(temp_enemy);
 }
 
 void timer(int value) {
@@ -156,42 +114,48 @@ void timer(int value) {
 }
 
 void keyboard(unsigned char key, int x, int y) {
-    keys[key] = true;
+    Game::getInstance().setKey(key, true);
 }
 
 void keyboardUp(unsigned char key, int x, int y) {
-    keys[key] = false;
+    Game::getInstance().setKey(key, false);
 }
 
 void specialKeys(int key, int x, int y) {
+    Game& game = Game::getInstance();
     switch (key) {
         case GLUT_KEY_UP:
-            cameraY -= 0.1f;
+            game.setCameraY(game.getCameraY() - 0.1f);
             break;
         case GLUT_KEY_DOWN:
-            cameraY += 0.1f;
+            game.setCameraY(game.getCameraY() + 0.1f);
             break;
         case GLUT_KEY_LEFT:
-            cameraX += 0.1f;
+            game.setCameraX(game.getCameraX() + 0.1f);
             break;
         case GLUT_KEY_RIGHT:
-            cameraX -= 0.1f;
+            game.setCameraX(game.getCameraX() - 0.1f);
             break;
     }
     glutPostRedisplay();
 }
 
 void initShapes() {
-    Sprite* sprite = new Sprite("assets/cat.png", 0.2f, 0.2);
+    Game& game = Game::getInstance();
+    Player* player = game.getPlayer();
 
-    canvasItems.push_back(sprite);
+    Sprite* sprite = new Sprite("assets/cat.png", 0.2f, 0.2f);
 
-    canvasItems.push_back(player);
+    game.addCanvasItem(sprite);
+    game.addCanvasItem(player);
+
     sprite->owner = player;
     player->hide();
 }
 
 void mouse(int x, int y) {
+    Game& game = Game::getInstance();
+
     // Отримання розмірів вікна
     int windowWidth = glutGet(GLUT_WINDOW_WIDTH);
     int windowHeight = glutGet(GLUT_WINDOW_HEIGHT);
@@ -201,25 +165,28 @@ void mouse(int x, int y) {
     float lMouseY = 1.0f - (float)y / windowHeight * 2.0f;
 
     // Врахування позиції камери
-    mouseX = lMouseX + cameraX;
-    mouseY = lMouseY + cameraY;
+    game.setMouseX(lMouseX + game.getCameraX());
+    game.setMouseY(lMouseY + game.getCameraY());
 }
 
 void initEnemies() {
     spawnEnemy();
 }
 
-
 void mouseEvent(int button, int state, int x, int y) {
     if (state == GLUT_DOWN) {
-        bullets.push_back(new Bullet(player->offsetX, player->offsetY + 0.1f, mouseX, mouseY, 0.02f));
+        Game& game = Game::getInstance();
+
+
+
+        game.addCanvasItem(new Bullet(game.getPlayer()->offsetX, game.getPlayer()->offsetY + 0.1f, game.getMouseX(), game.getMouseY(), 0.02f));
         AudioServer& audio = AudioServer::getInstance();
         audio.playSound("assets/shoot.ogg");
     }
 }
 
 int main(int argc, char** argv) {
-
+    Game& game = Game::getInstance();
     AudioServer& audio = AudioServer::getInstance();
     audio.playSound("assets/tickTock.ogg");
 
@@ -228,7 +195,7 @@ int main(int argc, char** argv) {
     glutInitWindowSize(700, 700);
     glutCreateWindow("Dark magic");
 
-    player = new Player(0.2f, 0.0f, 1.0f, 0.0f, 3, 0.01f);
+    game.setPlayer(new Player(0.2f, 0.0f, 1.0f, 0.0f, 3, 0.01f));
 
     initShapes();
     initEnemies();
@@ -245,16 +212,16 @@ int main(int argc, char** argv) {
 
     glutMainLoop();
 
-    for (CanvasItem* item : canvasItems) {
+    for (CanvasItem* item : game.getCanvasItems()) {
         delete item;
     }
-    for (Enemy* enemy : enemies) {
+    for (Enemy* enemy : game.getEnemies()) {
         delete enemy;
     }
-    for (Bullet* bullet : bullets) {
+    for (Bullet* bullet : game.getBullets()) {
         delete bullet;
     }
-    delete player;
+    delete game.getPlayer();
 
     return 0;
 }

@@ -34,7 +34,10 @@ GLuint Sprite::loadSOILTexture(const std::string& imagePath) {
     return texture;
 }
 
-void Sprite::draw() {
+void Sprite::update() {
+}
+
+void Sprite::draw()  {
 
     if (!visible || !textureID) return;
 

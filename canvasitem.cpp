@@ -1,4 +1,4 @@
-// canvasitem.cpp
+
 #include "canvasitem.h"
 
 // CanvasItem::CanvasItem() : offsetX(0.0f), offsetY(0.0f), visible(true) {}

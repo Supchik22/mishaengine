@@ -19,6 +19,9 @@ void Player::draw() {
     glEnd();
 }
 
+void Player::update() {
+}
+
 void Player::move(float dx, float dy) {
     offsetX += dx * moveSpeed;
     offsetY += dy * moveSpeed;

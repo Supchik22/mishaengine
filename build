@@ -2,7 +2,7 @@
 
 
 # Назва вашого вихідного файлу
-SOURCE_FILES="main.cpp canvasitem.cpp entities/enemy.cpp entities/bullet.cpp entities/player.cpp canvasitems/sprite.cpp audioserver.cpp"
+SOURCE_FILES="main.cpp canvasitem.cpp entities/enemy.cpp entities/bullet.cpp entities/player.cpp canvasitems/sprite.cpp audioserver.cpp game.cpp particles.cpp particle.cpp utility.cpp"
 
 # Назва виходу (зазначте ім'я для вашого виконуваного файлу)
 OUTPUT_FILE="Game"
