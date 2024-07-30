@@ -1,4 +1,6 @@
+#include <GL/glew.h>
 #include <GL/glut.h>
+
 #include "canvasitem.h"
 #include "entities/player.h"
 #include "entities/enemy.h"
@@ -12,7 +14,7 @@
 #include "audioserver.h"
 #include "game.h"
 #include "particles.h"
-
+#include "ui/button.h"
 
 // Function declarations
 void displayLives();
@@ -27,17 +29,32 @@ void initShapes();
 void mouse(int x, int y);
 void initEnemies();
 void spawnEnemy();
+void reshape(int width, int height);
+
+int windowWidth = 800;
+int windowHeight = 600;
 
 void displayLives() {
     Game& game = Game::getInstance();
     Player* player = game.getPlayer();
     std::string livesText = "Lives: " + std::to_string(player->lives);
     glColor3f(1.0f, 1.0f, 1.0f);
-    glRasterPos2f(-0.9f + game.getCameraX(), 0.9f + game.getCameraY());
+
+    // Отримання розмірів вікна
+    int windowWidth = glutGet(GLUT_WINDOW_WIDTH);
+    int windowHeight = glutGet(GLUT_WINDOW_HEIGHT);
+    float aspectRatio = (float)windowWidth / (float)windowHeight;
+
+    float xPosition = -0.9f * (windowWidth >= windowHeight ? aspectRatio : 1.0f) + game.getCameraX();
+    float yPosition = 0.9f * (windowWidth < windowHeight ? aspectRatio : 1.0f) + game.getCameraY();
+
+    glRasterPos2f(xPosition, yPosition);
+
     for (char c : livesText) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, c);
     }
 }
+
 
 
 
@@ -96,6 +113,33 @@ void display() {
 
     glutSwapBuffers();
 }
+void reshape(int width, int height) {
+    // Зберігаємо нові розміри вікна
+    windowWidth = width;
+    windowHeight = height;
+
+    // Встановлюємо новий розмір вікна
+    glViewport(0, 0, width, height);
+
+    // Обчислюємо співвідношення сторін
+    float aspectRatio = (float)width / (float)height;
+
+    // Встановлюємо перспективну проекцію
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    if (width >= height) {
+        // Якщо вікно ширше або таке ж як і високе
+        gluOrtho2D(-aspectRatio, aspectRatio, -1.0, 1.0);
+    } else {
+        // Якщо вікно вище ніж ширше
+        gluOrtho2D(-1.0, 1.0, -1.0 / aspectRatio, 1.0 / aspectRatio);
+    }
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+}
+
+
 
 void spawnEnemy() {
     Game& game = Game::getInstance();
@@ -144,40 +188,64 @@ void initShapes() {
     Game& game = Game::getInstance();
     Player* player = game.getPlayer();
 
-    Sprite* sprite = new Sprite("assets/cat.png", 0.2f, 0.2f);
+    //Sprite* sprite = new Sprite("assets/cat.png", 0.2f, 0.2f);
 
-    game.addCanvasItem(sprite);
+    //sprite->owner = player;
+    //game.addCanvasItem(sprite);
     game.addCanvasItem(player);
 
-    sprite->owner = player;
     player->hide();
 }
 
 void mouse(int x, int y) {
     Game& game = Game::getInstance();
 
-    // Отримання розмірів вікна
-    int windowWidth = glutGet(GLUT_WINDOW_WIDTH);
-    int windowHeight = glutGet(GLUT_WINDOW_HEIGHT);
+
 
     // Перетворення координат миші на координати системи вікна
-    float lMouseX = (float)x / windowWidth * 2.0f - 1.0f;
-    float lMouseY = 1.0f - (float)y / windowHeight * 2.0f;
+    float aspect_ratio = (float)windowWidth / (float)windowHeight;
+    float lMouseX, lMouseY;
+
+    if (windowWidth >= windowHeight) {
+        lMouseX = ((float)x / windowWidth * 2.0f - 1.0f) * aspect_ratio;
+        lMouseY = 1.0f - (float)y / windowHeight * 2.0f;
+    } else {
+        lMouseX = (float)x / windowWidth * 2.0f - 1.0f;
+        lMouseY = (1.0f - (float)y / windowHeight * 2.0f) / aspect_ratio;
+    }
 
     // Врахування позиції камери
     game.setMouseX(lMouseX + game.getCameraX());
     game.setMouseY(lMouseY + game.getCameraY());
 }
 
+
 void initEnemies() {
     spawnEnemy();
 }
+
+
+
 
 void mouseEvent(int button, int state, int x, int y) {
     if (state == GLUT_DOWN) {
         Game& game = Game::getInstance();
 
+        // Отримання розмірів вікна
+        int windowWidth = glutGet(GLUT_WINDOW_WIDTH);
+        int windowHeight = glutGet(GLUT_WINDOW_HEIGHT);
 
+        // Перетворення координат миші на координати системи вікна
+        float mouseX = (float)x / windowWidth * 2.0f - 1.0f;
+        float mouseY = 1.0f - (float)y / windowHeight * 2.0f;
+
+        for (CanvasItem* item : game.getCanvasItems()) {
+            UIElement* uiElement = dynamic_cast<UIElement*>(item);
+            if (uiElement) {
+                uiElement->onClick(mouseX, mouseY);
+            }
+
+        }
 
         game.addCanvasItem(new Bullet(game.getPlayer()->offsetX, game.getPlayer()->offsetY + 0.1f, game.getMouseX(), game.getMouseY(), 0.02f));
         AudioServer& audio = AudioServer::getInstance();
@@ -194,32 +262,42 @@ int main(int argc, char** argv) {
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
     glutInitWindowSize(700, 700);
     glutCreateWindow("Dark magic");
-
+    GLenum err = glewInit();
+    if (GLEW_OK != err) {
+        std::cerr << "Error: " << glewGetErrorString(err) << std::endl;
+        return -1;
+    }
     game.setPlayer(new Player(0.2f, 0.0f, 1.0f, 0.0f, 3, 0.01f));
-
+    // Отримання розмірів вікна
+    windowWidth = glutGet(GLUT_WINDOW_WIDTH);
+    windowHeight = glutGet(GLUT_WINDOW_HEIGHT);
     initShapes();
     initEnemies();
     glutPassiveMotionFunc(mouse);
 
     glutMouseFunc(mouseEvent);
 
+    Button* button = new Button(
+        Align::RIGHT, 0.0f, 0.0f, -0.15f, -0.05f, 0.3f, 0.1f,
+        []() {
+            std::cout << "Hello World" << std::endl;
+        }
+    );
+
+    game.addCanvasItem(button);
+
     glutDisplayFunc(display);
+    glutReshapeFunc(reshape); // Додайте цю лінію
     glutKeyboardFunc(keyboard);
     glutKeyboardUpFunc(keyboardUp);
     glutSpecialFunc(specialKeys);
-
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f); // Колір фону
     glutTimerFunc(16, timer, 0);
 
     glutMainLoop();
 
     for (CanvasItem* item : game.getCanvasItems()) {
         delete item;
-    }
-    for (Enemy* enemy : game.getEnemies()) {
-        delete enemy;
-    }
-    for (Bullet* bullet : game.getBullets()) {
-        delete bullet;
     }
     delete game.getPlayer();
 

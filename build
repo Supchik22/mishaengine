@@ -7,7 +7,7 @@ SOURCE_FILES="main.cpp canvasitem.cpp entities/enemy.cpp entities/bullet.cpp ent
 # Назва виходу (зазначте ім'я для вашого виконуваного файлу)
 OUTPUT_FILE="Game"
 
-g++ -o $OUTPUT_FILE $SOURCE_FILES -lGL -lGLU -lglut -lSOIL -lsndfile -lopenal
+g++ -o $OUTPUT_FILE $SOURCE_FILES -lGL -lGLU -lglut -lSOIL -lsndfile -lopenal -lGLEW
 
 # x86_64-w64-mingw32-gcc -o $OUTPUT_FILE $SOURCE_FILES -lGL -lGLU -lglut -lSOIL
 
