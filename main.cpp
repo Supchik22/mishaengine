@@ -188,10 +188,10 @@ void initShapes() {
     Game& game = Game::getInstance();
     Player* player = game.getPlayer();
 
-    //Sprite* sprite = new Sprite("assets/cat.png", 0.2f, 0.2f);
+    Sprite* sprite = new Sprite("assets/cat.png", 0.2f, 0.2f);
 
-    //sprite->owner = player;
-    //game.addCanvasItem(sprite);
+    sprite->owner = player;
+    game.addCanvasItem(sprite);
     game.addCanvasItem(player);
 
     player->hide();
@@ -278,11 +278,12 @@ int main(int argc, char** argv) {
     glutMouseFunc(mouseEvent);
 
     Button* button = new Button(
-        Align::RIGHT, 0.0f, 0.0f, -0.15f, -0.05f, 0.3f, 0.1f,
+        Align::CENTER, ScreenPosition::TOP, 0.0f, 0.0f, -0.15f, -0.05f, 0.3f, 0.1f,
         []() {
             std::cout << "Hello World" << std::endl;
         }
     );
+
 
     game.addCanvasItem(button);
 
